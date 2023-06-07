@@ -9,11 +9,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpdateTodoStatusAttributeDto = exports.UpdateTodoStringValueAttributeDto = exports.LimitGet = exports.TodoDto = void 0;
+exports.LimitGet = exports.TodoDto = void 0;
 const class_validator_1 = require("class-validator");
-const todoStatusValues = ["pending", "completed"];
-const todoStringKeys = ["title", "date"];
-const todoStatusKey = ["status"];
+const todoStatusValues = ['pending', 'completed'];
+const todoStringKeys = ['title', 'date'];
+const todoStatusKey = ['status'];
 class TodoDto {
 }
 __decorate([
@@ -29,33 +29,11 @@ __decorate([
     __metadata("design:type", String)
 ], TodoDto.prototype, "status", void 0);
 __decorate([
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
 ], TodoDto.prototype, "id", void 0);
 exports.TodoDto = TodoDto;
 class LimitGet {
 }
 exports.LimitGet = LimitGet;
-class UpdateTodoStringValueAttributeDto {
-}
-__decorate([
-    (0, class_validator_1.IsIn)(todoStringKeys),
-    __metadata("design:type", String)
-], UpdateTodoStringValueAttributeDto.prototype, "key", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], UpdateTodoStringValueAttributeDto.prototype, "value", void 0);
-exports.UpdateTodoStringValueAttributeDto = UpdateTodoStringValueAttributeDto;
-class UpdateTodoStatusAttributeDto {
-}
-__decorate([
-    (0, class_validator_1.IsIn)(todoStatusKey),
-    __metadata("design:type", String)
-], UpdateTodoStatusAttributeDto.prototype, "key", void 0);
-__decorate([
-    (0, class_validator_1.IsIn)(todoStatusValues),
-    __metadata("design:type", String)
-], UpdateTodoStatusAttributeDto.prototype, "value", void 0);
-exports.UpdateTodoStatusAttributeDto = UpdateTodoStatusAttributeDto;
 //# sourceMappingURL=todoDto.js.map

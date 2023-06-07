@@ -1,6 +1,5 @@
 import {
     TodoItem,
-    initializeState,
     TodoStatus,
 } from '../utils';
 
@@ -10,44 +9,106 @@ import {
     PayloadAction,
 } from '@reduxjs/toolkit'
 
-import { RootState } from "../app/store";
+import { RootState, AppDispatch } from "../app/store";
 import { v4 as uuid } from 'uuid';
+import TodosServer from './todosServer';
 
 
+export type AddNewTodoType = { title: string, date: string }
+export type RemoveTodoType = { todoIdToRemove: string }
+export type UpdateOrderType = { todoIdsOrder: string[] }
+export type Response = { result: string }
+type UpdatedAttributesType = { todoId: string, attributes: Partial<Omit<TodoItem, "id">> }
+type LoadingStatusType =  'idle' | 'loading'
 
-type editTodoType = { todoId: string, newValue: string };
-type toggleTodoType = { todoId: string }
-type addNewTodoType = { title: string, date: string }
-type removeTodoType = toggleTodoType
-type updateOrderType = { newTodosOrder: string[] }
-
-type todosState = {
+export type TodosState = {
     entries: {
         [id: string]: TodoItem
     },
-    todoIdsInOrder: string[]
+    todoIdsInOrder: string[],
+    loadingStatus:LoadingStatusType
+
 }
 type timelineState = {
-    present: todosState,
-    past: todosState[],
-    future: todosState[],
-    status: 'idle' | 'loading'
+    present: TodosState,
+    past: TodosState[],
+    future: TodosState[],
 }
-const initialPresentState: todosState = initializeState();
+
+type ThunkApi = { getState: RootState, dispatch: AppDispatch, rejectValue: Response };
+
+const initialPresentState: TodosState = { entries: {}, todoIdsInOrder: [], loadingStatus: 'idle' };
 const initialTimelineState: timelineState = {
     present: initialPresentState,
     past: [],
     future: [],
-    status: 'idle'
+   
 }
 
-export const fetchTodos = createAsyncThunk('todosTimeline/fetchTodos', async () => {
-    const response = await fetch('http://localhost:3000/todos', {
-        method: 'GET'
-    })
-    console.log(response)
-}
-)
+export const loadTodos = createAsyncThunk<TodosState>('todosTimeline/fetchTodos', TodosServer.loadTodos);
+
+export const createNewTodo = createAsyncThunk<
+    Response,
+    AddNewTodoType,
+    ThunkApi>
+    ('todosTimeline/createNewTodo', async ({ title, date }, thunkApi) => {
+        const newTodo = {
+            title,
+            date,
+            status: "pending" as TodoStatus,
+            id: uuid(),
+        } as TodoItem
+        thunkApi.dispatch(addNewTodoToSlice(newTodo))
+        try {
+            return await TodosServer.createNewTodo(newTodo)
+        } catch (error) {
+            thunkApi.dispatch(removeTodoFromSlice({ todoIdToRemove: newTodo.id }))
+            return thunkApi.rejectWithValue({ result: "Failed to connect to server" })
+        }
+    });
+
+export const deleteTodo = createAsyncThunk<
+    Response,
+    RemoveTodoType,
+    ThunkApi>
+    ('todosTimeline/removeTodo', async ({ todoIdToRemove}, thunkApi) => {
+        try {
+            const response = await TodosServer.deleteTodo(todoIdToRemove)
+            thunkApi.dispatch(removeTodoFromSlice({ todoIdToRemove }))
+            return response;
+        } catch (error) {
+            return { result: "Failed to delete todo" }
+        }
+    });
+export const updateTodo = createAsyncThunk<
+    Response,
+    { todoId: string },
+    ThunkApi>
+    ('todosTimeline/updateTodo', async ({ todoId }, thunkApi) => {
+        const todoToUpdate = selectTodoById(thunkApi.getState() as RootState, todoId)
+        try {
+            return TodosServer.updateTodo(todoToUpdate)
+        } catch (e) {
+            const backupTodo = await TodosServer.loadTodoById(todoId);
+            const { id, ...backupUpdateAttributes } = backupTodo
+            thunkApi.dispatch(updateTodoInSlice({ todoId: id, attributes: backupUpdateAttributes }))
+            return thunkApi.rejectWithValue({ result: `Failed to update todo with id ${todoId}` })
+        }
+    });
+
+export const updateOrder = createAsyncThunk<
+    Response,
+    UpdateOrderType,
+    ThunkApi>
+    ('todosTimeline/updateOrder', async ({ todoIdsOrder }, thunkApi) => {
+        try {
+            return TodosServer.updateOrder(todoIdsOrder);
+        } catch (e) {
+            const backupTodosIdsInOrder = await TodosServer.loadTodoIdsInOrder();  
+            thunkApi.dispatch(updateOrderInSlice(backupTodosIdsInOrder))
+            return thunkApi.rejectWithValue({ result: `Failed to update todos order` })
+        }
+    });
 
 
 
@@ -57,39 +118,25 @@ const todosTimelineSlice = createSlice({
     name: 'todosTimeline',
     initialState: initialTimelineState,
     reducers: {
-        addNewTodo(state, action: PayloadAction<addNewTodoType>) {
-            const { title, date } = action.payload;
-            const newTodo = {
-                title,
-                date,
-                status: "pending" as TodoStatus,
-                id: uuid(),
-            }
+        addNewTodoToSlice(state, action: PayloadAction<TodoItem>) {
+            const newTodo = action.payload;
             state.present.entries[newTodo.id] = newTodo;
             state.present.todoIdsInOrder.push(newTodo.id);
         },
-        removeTodo(state, action: PayloadAction<removeTodoType>) {
-            const { todoId } = action.payload;
+        removeTodoFromSlice(state, action: PayloadAction<RemoveTodoType>) {
+            const { todoIdToRemove: todoId } = action.payload;
             const todoIndex = state.present.todoIdsInOrder.findIndex(id => id === todoId);
             state.present.todoIdsInOrder.splice(todoIndex, 1);
             delete state.present.entries[todoId];
         },
-        toggleStatus(state, action: PayloadAction<toggleTodoType>) {
-            const { todoId } = action.payload;
-            state.present.entries[todoId].status = state.present.entries[todoId].status === "completed" ? "pending" : "completed"
+        updateTodoInSlice(state, action: PayloadAction<UpdatedAttributesType>) {
+            const { todoId, attributes } = action.payload;
+            state.present.entries[todoId] = { ...state.present.entries[todoId], ...attributes };
         },
-        changeTitle(state, action: PayloadAction<editTodoType>) {
-            const { todoId, newValue } = action.payload;
-            state.present.entries[todoId].title = newValue;
-        },
-        changeDate(state, action: PayloadAction<editTodoType>) {
-            const { todoId, newValue } = action.payload;
-            state.present.entries[todoId].date = newValue;
-        },
-        updateOrder(state, action: PayloadAction<updateOrderType>) {
-            const { newTodosOrder } = action.payload; //TODO: add checks?
-            if (state.present.todoIdsInOrder.length === newTodosOrder.length) {
-                state.present.todoIdsInOrder = newTodosOrder;
+        updateOrderInSlice(state, action: PayloadAction<UpdateOrderType>) {
+            const { todoIdsOrder } = action.payload;
+            if (state.present.todoIdsInOrder.length === todoIdsOrder.length) {
+                state.present.todoIdsInOrder = todoIdsOrder;
             }
         },
         undoTodos(state) {
@@ -108,7 +155,7 @@ const todosTimelineSlice = createSlice({
                 state.present = nextFutureState;
             }
         },
-        pushSnapshotToPast(state, action: PayloadAction<{ presentTodos: todosState }>) {
+        pushSnapshotToPast(state, action: PayloadAction<{ presentTodos: TodosState }>) {
             const { presentTodos } = action.payload;
             state.past.push(presentTodos)
         },
@@ -118,11 +165,39 @@ const todosTimelineSlice = createSlice({
 
     },
     extraReducers: builder => {
-        builder.addCase(fetchTodos.pending, (state, action) => {
-            state.status = 'loading'
+        builder.addCase(loadTodos.pending, (state, action) => {
+            state.present.loadingStatus = 'loading'
         })
-            .addCase(fetchTodos.fulfilled, (state, action) => {
-                state.status = 'idle';
+            .addCase(loadTodos.fulfilled, (state, action) => {
+                state.present = action.payload;
+                state.present.loadingStatus = 'idle';
+            })
+
+            .addCase(createNewTodo.rejected, (state, action) => {
+                if (action.payload !== undefined) {
+                    alert(action.payload.result);
+                }
+            })
+            .addCase(deleteTodo.rejected, (state, action) => {
+                if (action.payload !== undefined) {
+                    alert(action.payload.result)
+                }
+            })
+            .addCase(updateTodo.fulfilled, (state, action) => {
+                console.log(action.payload.result)
+            })
+            .addCase(updateTodo.rejected, (state, action) => {
+                if (action.payload !== undefined) {
+                    alert(action.payload.result)
+                }
+            })
+            .addCase(updateOrder.fulfilled, (state,action)=>{
+                console.log(action.payload.result)
+            })
+            .addCase(updateOrder.rejected, (state,action)=>{
+                if (action.payload !== undefined) {
+                    alert(action.payload.result)
+                }
             })
     }
 }
@@ -131,25 +206,22 @@ const todosTimelineSlice = createSlice({
 
 
 export const selectTodoIdsInorder = (state: RootState): string[] => state.todos.present.todoIdsInOrder;
-
 export const selectTodos = (state: RootState): { [id: string]: TodoItem } => state.todos.present.entries;
-
 export const selectTodoById = (state: RootState, id: string): TodoItem => state.todos.present.entries[id]
+export const selectPast = (state: RootState): TodosState[] => state.todos.past
+export const selectFuture = (state: RootState): TodosState[] => state.todos.future;
+export const selectLoadingStatus = (state:RootState): LoadingStatusType => state.todos.present.loadingStatus
 
-export const selectPast = (state: RootState): todosState[] => state.todos.past
-export const selectFuture = (state: RootState): todosState[] => state.todos.future;
 
 
 
 
 
 export const {
-    addNewTodo,
-    removeTodo,
-    toggleStatus,
-    changeDate,
-    updateOrder,
-    changeTitle,
+    addNewTodoToSlice,
+    removeTodoFromSlice,
+    updateTodoInSlice,
+    updateOrderInSlice,
     pushSnapshotToPast,
     undoTodos,
     redoTodos,

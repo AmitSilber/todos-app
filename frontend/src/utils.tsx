@@ -25,19 +25,3 @@ export function useToggle(initialState: boolean) {
 
 }
 
-
-export function initializeState() {
-    let initialTodos = {}
-    let initialIdsInOrder = []
-    const persistedTodosString = localStorage.getItem('todos')
-    const preloadedIdsString = localStorage.getItem('inorderIds')
-
-    if (persistedTodosString) {
-        initialTodos = JSON.parse(persistedTodosString);
-    }
-    if (preloadedIdsString) {
-        initialIdsInOrder = JSON.parse(preloadedIdsString)
-    }
-    return { entries: initialTodos, todoIdsInOrder: initialIdsInOrder }
-}
-

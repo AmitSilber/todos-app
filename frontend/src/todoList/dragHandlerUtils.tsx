@@ -1,5 +1,5 @@
 import { AppDispatch } from "../app/store";
-import { updateOrder } from "./todosSlice";
+import { updateOrderInSlice,updateOrder } from "./todosSlice";
 
 
 export function handleDragStart(index: number, draggingItem: React.MutableRefObject<number>) {
@@ -12,7 +12,7 @@ export function reorderTodoList(index: number,
   idsInOrder: string[],
   dispatch: AppDispatch
 ): void {
-  if (index == draggingItem.current) {
+  if (index === draggingItem.current) {
     return;
   }
   dragOverItem.current = index;
@@ -23,6 +23,7 @@ export function reorderTodoList(index: number,
 
   draggingItem.current = dragOverItem.current;
   dragOverItem.current = 0;
-  dispatch(updateOrder({ newTodosOrder: idsReordered }))
+  dispatch(updateOrderInSlice({ todoIdsOrder: idsReordered }))
+  dispatch(updateOrder({ todoIdsOrder: idsReordered }))
 
 };

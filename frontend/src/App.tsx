@@ -5,28 +5,22 @@ import { handleDragStart, reorderTodoList } from './todoList/dragHandlerUtils';
 import { Header } from './Header/Header';
 import './App.css';
 import Row from './todoList/Row/Row'
-import { fetchTodos } from './todoList/todosSlice';
-import { store } from './app/store';
+import { loadTodos } from './todoList/todosSlice';
+import { AppDispatch } from './app/store';
 
 
 function App() {
   const todoIndicesInorder: string[] = useSelector(selectTodoIdsInorder)
-  const todoList = useSelector(selectTodos);
 
-  const dispatch = useDispatch()
+  
+  const dispatch = useDispatch<AppDispatch>()
   const draggingItem = useRef(0);
   const dragOverItem = useRef(0);
 
 
   useEffect(() => {
-    console.log("hello boys")
-    localStorage.setItem("todos", JSON.stringify(todoList));
-    store.dispatch(fetchTodos())
-  }, [todoList]);
-  useEffect(() => {
-    localStorage.setItem("inorderIds", JSON.stringify(todoIndicesInorder))
-  }, [todoIndicesInorder]
-  )
+  dispatch(loadTodos())
+  }, []);
 
   return (
     <div className="App">

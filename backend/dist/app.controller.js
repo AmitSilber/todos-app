@@ -24,10 +24,14 @@ let AppController = class AppController {
     async create(newTodoItem, res) {
         try {
             await this.appService.create(newTodoItem);
-            return res.status(common_1.HttpStatus.CREATED).send('created new todo successfully');
+            return res
+                .status(common_1.HttpStatus.CREATED)
+                .send({ result: 'created new todo successfully' });
         }
         catch (e) {
-            return this.writeAndReturnErrorResponse(res.status(common_1.HttpStatus.BAD_REQUEST), 'Failed to create new Todo item');
+            return res
+                .status(common_1.HttpStatus.BAD_REQUEST)
+                .json({ result: 'Failed to create new Todo item' });
         }
     }
     async findAll(res) {
@@ -38,75 +42,94 @@ let AppController = class AppController {
                     resultJson[todo.id] = todo;
                     return resultJson;
                 }, {}),
-                todoIdsInOrder: todos.map(todo => todo.id)
+                todoIdsInOrder: todos.map((todo) => todo.id),
             };
             return res.status(common_1.HttpStatus.ACCEPTED).json(todosJsonWithOrderedIds);
         }
         catch (e) {
-            return this.writeAndReturnErrorResponse(res.status(common_1.HttpStatus.BAD_REQUEST), 'Failed to create new Todo item');
+            return res
+                .status(common_1.HttpStatus.BAD_REQUEST)
+                .json({ result: 'Failed to create new Todo item' });
+        }
+    }
+    async getTodosOrder(res) {
+        try {
+            const todos = (await this.appService.findAll()).rows;
+            const todosOrder = { todoIdsOrder: todos.map((todo) => todo.id) };
+            return res.status(common_1.HttpStatus.ACCEPTED).json(todosOrder);
+        }
+        catch (e) {
+            return res
+                .status(common_1.HttpStatus.BAD_REQUEST)
+                .json({ result: 'Failed to retrive todos order' });
         }
     }
     async findOne(id, res) {
         try {
             const todosAffected = (await this.appService.findOne(id)).rows;
             if (todosAffected.length !== 1) {
-                return this.writeAndReturnErrorResponse(res.status(common_1.HttpStatus.BAD_REQUEST), `Id ${id} created conflict - not unique`);
+                return res
+                    .status(common_1.HttpStatus.BAD_REQUEST)
+                    .json({ result: `Id ${id} created conflict - not unique` });
             }
             return res.status(common_1.HttpStatus.ACCEPTED).json(todosAffected[0]);
         }
         catch (e) {
-            return this.writeAndReturnErrorResponse(res.status(common_1.HttpStatus.BAD_REQUEST), `Failed to find todo with id: ${id}`);
+            return res
+                .status(common_1.HttpStatus.BAD_REQUEST)
+                .json({ result: `Failed to find todo with id: ${id}` });
         }
     }
-    async updateTodoWithStringValue(id, updateTodoDto, res) {
+    async updateTodo(updateTodoDto, res) {
         try {
-            const todosAffected = (await this.appService.updateTodo(id, updateTodoDto)).rows;
+            const todosAffected = (await this.appService.updateTodo(updateTodoDto))
+                .rows;
             if (todosAffected.length !== 1) {
-                return this.writeAndReturnErrorResponse(res.status(common_1.HttpStatus.BAD_REQUEST), `Id ${id} created conflict - not unique`);
+                return res.status(common_1.HttpStatus.BAD_REQUEST).json({
+                    result: `Id ${updateTodoDto.id} created conflict - not unique`,
+                });
             }
-            return res.status(common_1.HttpStatus.ACCEPTED).send(`updated ${updateTodoDto.key} attribute of todo with id ${id} successfully`);
+            return res.status(common_1.HttpStatus.ACCEPTED).send({
+                result: `updated todo with id ${updateTodoDto.id} successfully`,
+            });
         }
         catch (e) {
-            return this.writeAndReturnErrorResponse(res.status(common_1.HttpStatus.BAD_REQUEST), `Filed to update todo with id: ${id}`);
-        }
-    }
-    async updateTodoWithStatusValue(id, updateTodoDto, res) {
-        try {
-            const todosAffected = (await this.appService.updateTodo(id, updateTodoDto)).rows;
-            if (todosAffected.length !== 1) {
-                return this.writeAndReturnErrorResponse(res.status(common_1.HttpStatus.BAD_REQUEST), `Id ${id} created conflict - not unique`);
-            }
-            return res.status(common_1.HttpStatus.ACCEPTED).send(`updated status attribute of todo with id ${id} successfully`);
-        }
-        catch (e) {
-            return this.writeAndReturnErrorResponse(res.status(common_1.HttpStatus.BAD_REQUEST), `Filed to update todo with id: ${id}`);
+            return res
+                .status(common_1.HttpStatus.BAD_REQUEST)
+                .json({ result: `Filed to update todo with id: ${updateTodoDto.id}` });
         }
     }
     async updateTodosOrder(newIdsOrder, res) {
         try {
             this.appService.reorderTodos(newIdsOrder);
-            return res.status(common_1.HttpStatus.ACCEPTED).send('updated todos order successfully');
+            return res
+                .status(common_1.HttpStatus.ACCEPTED)
+                .send({ result: 'updated todos order successfully' });
         }
         catch (e) {
-            return this.writeAndReturnErrorResponse(res.status(common_1.HttpStatus.BAD_REQUEST), `Filed to update todos Order`);
+            return res
+                .status(common_1.HttpStatus.BAD_REQUEST)
+                .json({ result: `Filed to update todos Order` });
         }
     }
     async remove(id, res) {
         try {
+            console.log('remove todo with id: ', id);
             const todosAffected = (await this.appService.removeTodo(id)).rows;
             if (todosAffected.length !== 1) {
-                return this.writeAndReturnErrorResponse(res.status(common_1.HttpStatus.BAD_REQUEST), `Id ${id} created conflict - not unique`);
+                return res
+                    .status(common_1.HttpStatus.BAD_REQUEST)
+                    .json({ result: `Id ${id} created conflict - not unique` });
             }
-            return res.status(common_1.HttpStatus.ACCEPTED).send(`deleted todo with id ${id} successfully`);
+            return res
+                .status(common_1.HttpStatus.ACCEPTED)
+                .send(`deleted todo with id ${id} successfully`);
         }
         catch (e) {
-            return this.writeAndReturnErrorResponse(res.status(common_1.HttpStatus.BAD_REQUEST), `Filed to delete todo with id: ${id}`);
+            return res
+                .status(common_1.HttpStatus.BAD_REQUEST)
+                .json({ result: `Filed to delete todo with id: ${id}` });
         }
-    }
-    writeAndReturnErrorResponse(res, message) {
-        return res.json({
-            message: message
-        });
     }
 };
 __decorate([
@@ -125,6 +148,13 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "findAll", null);
 __decorate([
+    (0, common_1.Get)('order'),
+    __param(0, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AppController.prototype, "getTodosOrder", null);
+__decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Res)()),
@@ -133,23 +163,13 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "findOne", null);
 __decorate([
-    (0, common_1.Put)('stringAttributes/:id'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)(new validation_pipe_1.TodoValidationPipe())),
-    __param(2, (0, common_1.Res)()),
+    (0, common_1.Put)(),
+    __param(0, (0, common_1.Body)(new validation_pipe_1.TodoValidationPipe())),
+    __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, todoDTO_1.UpdateTodoStringValueAttributeDto, Object]),
+    __metadata("design:paramtypes", [todoDTO_1.TodoDto, Object]),
     __metadata("design:returntype", Promise)
-], AppController.prototype, "updateTodoWithStringValue", null);
-__decorate([
-    (0, common_1.Put)('statusAttributes/:id'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)(new validation_pipe_1.TodoValidationPipe())),
-    __param(2, (0, common_1.Res)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, todoDTO_1.UpdateTodoStatusAttributeDto, Object]),
-    __metadata("design:returntype", Promise)
-], AppController.prototype, "updateTodoWithStatusValue", null);
+], AppController.prototype, "updateTodo", null);
 __decorate([
     (0, common_1.Put)('reorder'),
     __param(0, (0, common_1.Body)(new common_1.ParseArrayPipe({ items: String }))),

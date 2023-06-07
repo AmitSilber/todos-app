@@ -1,23 +1,25 @@
-import { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { changeTitle, removeTodo } from '../todosSlice';
+import { updateTodoInSlice, deleteTodo, updateTodo } from '../todosSlice';
 import { TodoItem, useToggle } from '../../utils';
+import { AppDispatch } from '../../app/store';
 
 
 const deleteIcon = "\u00D7";
 
 
 export function TitleCell(todo: TodoItem) {
-    const { value: editTitleMode, toggle:toggleEditTitleMode } = useToggle(false);
-    const dispatch = useDispatch();
+    const { value: editTitleMode, toggle: toggleEditTitleMode } = useToggle(false);
+    const dispatch = useDispatch<AppDispatch>();
 
 
     function editTitleHandler(e: React.ChangeEvent<HTMLInputElement>) {
-        dispatch(changeTitle({ todoId: todo.id, newValue: e.target.value }))
+        dispatch(updateTodoInSlice({ todoId: todo.id, attributes: { title: e.target.value } }))
     }
     function enterPressedHandler(e: React.KeyboardEvent<HTMLElement>) {
         if (e.key === 'Enter') {
             toggleEditTitleMode()
+            dispatch(updateTodo({ todoId: todo.id }))
+            dispatch(updateTodo({ todoId: todo.id }))
 
         }
     }
@@ -29,7 +31,7 @@ export function TitleCell(todo: TodoItem) {
 
     return (<td><div className={"title-cell"}>
         <span className='hover-cell' onClick={() => {
-            dispatch(removeTodo({ todoId: todo.id }))
+            dispatch(deleteTodo({ todoIdToRemove: todo.id }))
         }}>
             {deleteIcon}
         </span>

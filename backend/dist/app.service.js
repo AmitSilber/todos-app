@@ -19,13 +19,28 @@ let AppService = class AppService {
     INSERT INTO "todosTable" (id,title,date,status,todosorder)
     VALUES ($1,$2,$3,$4,$5)
     RETURNING *;`;
-        const todoValues = [todo.id, todo.title, todo.date, todo.status, newTodoOrder];
+        const todoValues = [
+            todo.id,
+            todo.title,
+            todo.date,
+            todo.status,
+            newTodoOrder,
+        ];
         return this.connectionService.query(insertTodoQuery, todoValues);
     }
     async getNextTodoMaxOrder() {
         const maxOrderQuery = `SELECT todosorder FROM "todosTable" ORDER BY todosorder DESC LIMIT 1`;
-        const maxOrder = (await this.connectionService.query(maxOrderQuery)).rows[0]["todosorder"];
-        return maxOrder + 1;
+        try {
+            const resultRows = (await this.connectionService.query(maxOrderQuery))
+                .rows;
+            const maxOrder = !resultRows.length
+                ? 0
+                : resultRows[0]['todosorder'];
+            return maxOrder + 1;
+        }
+        catch (e) {
+            console.log(e);
+        }
     }
     async findAll() {
         const selectAllQuery = `SELECT * FROM "todosTable" ORDER BY todosorder ASC LIMIT 100;`;
@@ -35,8 +50,12 @@ let AppService = class AppService {
         const selectTodoQuery = `SELECT * FROM "todosTable" WHERE id='${id}';`;
         return this.connectionService.query(selectTodoQuery);
     }
-    async updateTodo(id, updatedAttribute) {
-        const updateTodoQuery = `UPDATE "todosTable" SET ${updatedAttribute.key}='${updatedAttribute.value}' WHERE id='${id}' RETURNING *;`;
+    async updateTodo(updatedTodo) {
+        const todoAttributesPairs = Object.entries(updatedTodo)
+            .filter(([key, value]) => key !== 'id')
+            .map(([key, value]) => `${key}='${value}'`)
+            .join(', ');
+        const updateTodoQuery = `UPDATE "todosTable" SET ${todoAttributesPairs} WHERE id='${updatedTodo.id}' RETURNING *;`;
         return this.connectionService.query(updateTodoQuery);
     }
     async removeTodo(idToRemove) {
@@ -44,22 +63,14 @@ let AppService = class AppService {
         return this.connectionService.query(removeQuery);
     }
     async reorderTodos(newIdsOrder) {
-        const client = await this.connectionService.getPoolConnection();
-        try {
-            await client.query('BEGIN');
-            await Promise.all(newIdsOrder.map(async (todoId, index) => {
-                const updateOrderQuery = `UPDATE "todosTable" SET todosorder=${index} WHERE id='${todoId}'`;
-                await client.query(updateOrderQuery);
-            }));
-            await client.query('COMMIT');
-        }
-        catch (e) {
-            await client.query('ROLLBACK');
-            throw e;
-        }
-        finally {
-            client.release();
-        }
+        const updatedOrder = newIdsOrder
+            .map((id, index) => `WHEN id = '${id}' THEN ${index}`)
+            .join(' ');
+        const updateTodosOrderQuery = `UPDATE "todosTable" SET todosorder = CASE ${updatedOrder} ELSE todosorder END;`;
+        console.log('----------------------');
+        console.log(updateTodosOrderQuery);
+        console.log('----------------------');
+        return this.connectionService.query(updateTodosOrderQuery);
     }
 };
 AppService = __decorate([
