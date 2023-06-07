@@ -38,7 +38,12 @@ export class AppService {
 
   async findAll(): Promise<any> {
     const selectAllQuery = `SELECT * FROM "todosTable" ORDER BY todosorder ASC LIMIT 100;`;
-    return this.connectionService.query(selectAllQuery);
+    return new Promise((resolve) => {
+      setTimeout(
+        () => resolve(this.connectionService.query(selectAllQuery)),
+        3000,
+      );
+    });
   }
 
   async findOne(id: string): Promise<any> {
@@ -64,9 +69,6 @@ export class AppService {
       .map((id, index) => `WHEN id = '${id}' THEN ${index}`)
       .join(' ');
     const updateTodosOrderQuery = `UPDATE "todosTable" SET todosorder = CASE ${updatedOrder} ELSE todosorder END;`;
-    console.log('----------------------');
-    console.log(updateTodosOrderQuery);
-    console.log('----------------------');
     return this.connectionService.query(updateTodosOrderQuery);
   }
 

@@ -18,7 +18,7 @@ let ConnectionService = class ConnectionService {
     getPoolConnection() {
         return this.pool.connect();
     }
-    query(queryTextOrConfig, values) {
+    async query(queryTextOrConfig, values) {
         return this.pool.query(queryTextOrConfig, values).catch((err) => {
             throw err;
         });

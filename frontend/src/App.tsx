@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { selectTodoIdsInorder, selectTodos } from './todoList/todosSlice';
+import { selectTodoIdsInorder, selectLoadingStatus } from './todoList/todosSlice';
 import { useSelector, useDispatch } from 'react-redux';
 import { handleDragStart, reorderTodoList } from './todoList/dragHandlerUtils';
 import { Header } from './Header/Header';
@@ -11,20 +11,22 @@ import { AppDispatch } from './app/store';
 
 function App() {
   const todoIndicesInorder: string[] = useSelector(selectTodoIdsInorder)
+  const loadingStatus = useSelector(selectLoadingStatus);
 
-  
+
   const dispatch = useDispatch<AppDispatch>()
   const draggingItem = useRef(0);
   const dragOverItem = useRef(0);
 
 
   useEffect(() => {
-  dispatch(loadTodos())
+    dispatch(loadTodos())
   }, []);
 
   return (
     <div className="App">
       <Header />
+      { loadingStatus === 'loading'? <div className='loader'/>:
       <div id="table-wrapper">
         <table id="todo-list-table">
           <thead>
@@ -50,6 +52,7 @@ function App() {
           </tbody>
         </table>
       </div>
+}
     </div>
   );
 }

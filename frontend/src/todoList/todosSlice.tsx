@@ -19,14 +19,14 @@ export type RemoveTodoType = { todoIdToRemove: string }
 export type UpdateOrderType = { todoIdsOrder: string[] }
 export type Response = { result: string }
 type UpdatedAttributesType = { todoId: string, attributes: Partial<Omit<TodoItem, "id">> }
-type LoadingStatusType =  'idle' | 'loading'
+type LoadingStatusType = 'idle' | 'loading'
 
 export type TodosState = {
     entries: {
         [id: string]: TodoItem
     },
     todoIdsInOrder: string[],
-    loadingStatus:LoadingStatusType
+    loadingStatus: LoadingStatusType
 
 }
 type timelineState = {
@@ -42,9 +42,8 @@ const initialTimelineState: timelineState = {
     present: initialPresentState,
     past: [],
     future: [],
-   
-}
 
+}
 export const loadTodos = createAsyncThunk<TodosState>('todosTimeline/fetchTodos', TodosServer.loadTodos);
 
 export const createNewTodo = createAsyncThunk<
@@ -71,7 +70,7 @@ export const deleteTodo = createAsyncThunk<
     Response,
     RemoveTodoType,
     ThunkApi>
-    ('todosTimeline/removeTodo', async ({ todoIdToRemove}, thunkApi) => {
+    ('todosTimeline/removeTodo', async ({ todoIdToRemove }, thunkApi) => {
         try {
             const response = await TodosServer.deleteTodo(todoIdToRemove)
             thunkApi.dispatch(removeTodoFromSlice({ todoIdToRemove }))
@@ -104,7 +103,7 @@ export const updateOrder = createAsyncThunk<
         try {
             return TodosServer.updateOrder(todoIdsOrder);
         } catch (e) {
-            const backupTodosIdsInOrder = await TodosServer.loadTodoIdsInOrder();  
+            const backupTodosIdsInOrder = await TodosServer.loadTodoIdsInOrder();
             thunkApi.dispatch(updateOrderInSlice(backupTodosIdsInOrder))
             return thunkApi.rejectWithValue({ result: `Failed to update todos order` })
         }
@@ -191,10 +190,10 @@ const todosTimelineSlice = createSlice({
                     alert(action.payload.result)
                 }
             })
-            .addCase(updateOrder.fulfilled, (state,action)=>{
+            .addCase(updateOrder.fulfilled, (state, action) => {
                 console.log(action.payload.result)
             })
-            .addCase(updateOrder.rejected, (state,action)=>{
+            .addCase(updateOrder.rejected, (state, action) => {
                 if (action.payload !== undefined) {
                     alert(action.payload.result)
                 }
@@ -210,7 +209,7 @@ export const selectTodos = (state: RootState): { [id: string]: TodoItem } => sta
 export const selectTodoById = (state: RootState, id: string): TodoItem => state.todos.present.entries[id]
 export const selectPast = (state: RootState): TodosState[] => state.todos.past
 export const selectFuture = (state: RootState): TodosState[] => state.todos.future;
-export const selectLoadingStatus = (state:RootState): LoadingStatusType => state.todos.present.loadingStatus
+export const selectLoadingStatus = (state: RootState): LoadingStatusType => state.todos.present.loadingStatus
 
 
 
