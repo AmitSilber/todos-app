@@ -11,16 +11,16 @@ import {
 
 import { RootState, AppDispatch } from "../app/store";
 import { v4 as uuid } from 'uuid';
-import TodosServer from './todosServer';
+import TodosServer from './connectionToBackend/todosServer';
+
+type UpdatedAttributesType = { todoId: string, attributes: Partial<Omit<TodoItem, "id">> }
+type LoadingStatusType = 'idle' | 'loading'
 
 
 export type AddNewTodoType = { title: string, date: string }
 export type RemoveTodoType = { todoIdToRemove: string }
 export type UpdateOrderType = { todoIdsOrder: string[] }
-export type Response = { result: string }
-type UpdatedAttributesType = { todoId: string, attributes: Partial<Omit<TodoItem, "id">> }
-type LoadingStatusType = 'idle' | 'loading'
-
+export type Response = { message: string }
 export type TodosState = {
     entries: {
         [id: string]: TodoItem
@@ -44,6 +44,8 @@ const initialTimelineState: timelineState = {
     future: [],
 
 }
+
+
 export const loadTodos = createAsyncThunk<TodosState>('todosTimeline/fetchTodos', TodosServer.loadTodos);
 
 export const createNewTodo = createAsyncThunk<
@@ -61,8 +63,9 @@ export const createNewTodo = createAsyncThunk<
         try {
             return await TodosServer.createNewTodo(newTodo)
         } catch (error) {
+            console.error(error)
             thunkApi.dispatch(removeTodoFromSlice({ todoIdToRemove: newTodo.id }))
-            return thunkApi.rejectWithValue({ result: "Failed to connect to server" })
+            return thunkApi.rejectWithValue({ message: "Failed to connect to server" })
         }
     });
 
@@ -76,7 +79,8 @@ export const deleteTodo = createAsyncThunk<
             thunkApi.dispatch(removeTodoFromSlice({ todoIdToRemove }))
             return response;
         } catch (error) {
-            return { result: "Failed to delete todo" }
+            console.error(error)
+            return thunkApi.rejectWithValue({ message: "Failed to delete todo" })
         }
     });
 export const updateTodo = createAsyncThunk<
@@ -87,11 +91,12 @@ export const updateTodo = createAsyncThunk<
         const todoToUpdate = selectTodoById(thunkApi.getState() as RootState, todoId)
         try {
             return TodosServer.updateTodo(todoToUpdate)
-        } catch (e) {
+        } catch (error) {
+            console.error(error)
             const backupTodo = await TodosServer.loadTodoById(todoId);
             const { id, ...backupUpdateAttributes } = backupTodo
             thunkApi.dispatch(updateTodoInSlice({ todoId: id, attributes: backupUpdateAttributes }))
-            return thunkApi.rejectWithValue({ result: `Failed to update todo with id ${todoId}` })
+            return thunkApi.rejectWithValue({ message: `Failed to update todo with id ${todoId}` })
         }
     });
 
@@ -102,16 +107,13 @@ export const updateOrder = createAsyncThunk<
     ('todosTimeline/updateOrder', async ({ todoIdsOrder }, thunkApi) => {
         try {
             return TodosServer.updateOrder(todoIdsOrder);
-        } catch (e) {
+        } catch (error) {
+            console.error(error)
             const backupTodosIdsInOrder = await TodosServer.loadTodoIdsInOrder();
             thunkApi.dispatch(updateOrderInSlice(backupTodosIdsInOrder))
-            return thunkApi.rejectWithValue({ result: `Failed to update todos order` })
+            return thunkApi.rejectWithValue({ message: `Failed to update todos order` })
         }
     });
-
-
-
-
 
 const todosTimelineSlice = createSlice({
     name: 'todosTimeline',
@@ -171,31 +173,36 @@ const todosTimelineSlice = createSlice({
                 state.present = action.payload;
                 state.present.loadingStatus = 'idle';
             })
-
+            .addCase(createNewTodo.fulfilled, (state, action) => {
+                console.log(action.payload.message)
+            })
             .addCase(createNewTodo.rejected, (state, action) => {
                 if (action.payload !== undefined) {
-                    alert(action.payload.result);
+                    alert(action.payload.message);
                 }
+            })
+            .addCase(deleteTodo.fulfilled, (state, action) => {
+                console.log(action.payload.message)
             })
             .addCase(deleteTodo.rejected, (state, action) => {
                 if (action.payload !== undefined) {
-                    alert(action.payload.result)
+                    alert(action.payload.message)
                 }
             })
             .addCase(updateTodo.fulfilled, (state, action) => {
-                console.log(action.payload.result)
+                console.log(action.payload.message)
             })
             .addCase(updateTodo.rejected, (state, action) => {
                 if (action.payload !== undefined) {
-                    alert(action.payload.result)
+                    alert(action.payload.message)
                 }
             })
             .addCase(updateOrder.fulfilled, (state, action) => {
-                console.log(action.payload.result)
+                console.log(action.payload.message)
             })
             .addCase(updateOrder.rejected, (state, action) => {
                 if (action.payload !== undefined) {
-                    alert(action.payload.result)
+                    alert(action.payload.message)
                 }
             })
     }

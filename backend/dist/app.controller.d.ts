@@ -5,7 +5,7 @@ export declare class AppController {
     private readonly appService;
     constructor(appService?: AppService);
     create(newTodoItem: TodoDto, res: Response): Promise<Response<any, Record<string, any>>>;
-    findAll(res: Response): Promise<Response<any, Record<string, any>>>;
+    findAll(res: Response): Promise<unknown>;
     getTodosOrder(res: Response): Promise<Response<any, Record<string, any>>>;
     findOne(id: string, res: Response): Promise<Response<any, Record<string, any>>>;
     updateTodo(updateTodoDto: TodoDto, res: Response): Promise<Response<any, Record<string, any>>>;

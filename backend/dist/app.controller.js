@@ -17,119 +17,66 @@ const common_1 = require("@nestjs/common");
 const app_service_1 = require("./app.service");
 const todoDTO_1 = require("./dto/todoDTO");
 const validation_pipe_1 = require("./validation.pipe");
+const HttpExceptionFilter_1 = require("./HttpExceptionFilter");
 let AppController = class AppController {
     constructor(appService = new app_service_1.AppService()) {
         this.appService = appService;
     }
     async create(newTodoItem, res) {
-        try {
-            await this.appService.create(newTodoItem);
-            return res
-                .status(common_1.HttpStatus.CREATED)
-                .send({ result: 'created new todo successfully' });
-        }
-        catch (e) {
-            return res
-                .status(common_1.HttpStatus.BAD_REQUEST)
-                .json({ result: 'Failed to create new Todo item' });
-        }
+        await this.appService.create(newTodoItem);
+        return res
+            .status(common_1.HttpStatus.CREATED)
+            .send({ message: 'created new todo successfully' });
     }
     async findAll(res) {
-        try {
-            const todos = (await this.appService.findAll()).rows;
-            const todosJsonWithOrderedIds = {
-                entries: todos.reduce((resultJson, todo) => {
-                    resultJson[todo.id] = todo;
-                    return resultJson;
-                }, {}),
-                todoIdsInOrder: todos.map((todo) => todo.id),
-            };
-            return res.status(common_1.HttpStatus.ACCEPTED).json(todosJsonWithOrderedIds);
-        }
-        catch (e) {
-            return res
-                .status(common_1.HttpStatus.BAD_REQUEST)
-                .json({ result: 'Failed to create new Todo item' });
-        }
+        const todos = (await this.appService.findAll()).rows;
+        const todosJsonWithOrderedIds = {
+            entries: todos.reduce((resultJson, todo) => {
+                resultJson[todo.id] = todo;
+                return resultJson;
+            }, {}),
+            todoIdsInOrder: todos.map((todo) => todo.id),
+        };
+        return new Promise((resolve) => {
+            setTimeout(() => resolve(res.status(common_1.HttpStatus.ACCEPTED).json(todosJsonWithOrderedIds)), 2000);
+        });
     }
     async getTodosOrder(res) {
-        try {
-            const todos = (await this.appService.findAll()).rows;
-            const todosOrder = { todoIdsOrder: todos.map((todo) => todo.id) };
-            return res.status(common_1.HttpStatus.ACCEPTED).json(todosOrder);
-        }
-        catch (e) {
-            return res
-                .status(common_1.HttpStatus.BAD_REQUEST)
-                .json({ result: 'Failed to retrive todos order' });
-        }
+        const todos = (await this.appService.findAll()).rows;
+        const todosOrder = { todoIdsOrder: todos.map((todo) => todo.id) };
+        return res.status(common_1.HttpStatus.ACCEPTED).json(todosOrder);
     }
     async findOne(id, res) {
-        try {
-            const todosAffected = (await this.appService.findOne(id)).rows;
-            if (todosAffected.length !== 1) {
-                return res
-                    .status(common_1.HttpStatus.BAD_REQUEST)
-                    .json({ result: `Id ${id} created conflict - not unique` });
-            }
-            return res.status(common_1.HttpStatus.ACCEPTED).json(todosAffected[0]);
+        const todosAffected = (await this.appService.findOne(id)).rows;
+        if (todosAffected.length !== 1) {
+            throwConflictError();
         }
-        catch (e) {
-            return res
-                .status(common_1.HttpStatus.BAD_REQUEST)
-                .json({ result: `Failed to find todo with id: ${id}` });
-        }
+        return res.status(common_1.HttpStatus.ACCEPTED).json(todosAffected[0]);
     }
     async updateTodo(updateTodoDto, res) {
-        try {
-            const todosAffected = (await this.appService.updateTodo(updateTodoDto))
-                .rows;
-            if (todosAffected.length !== 1) {
-                return res.status(common_1.HttpStatus.BAD_REQUEST).json({
-                    result: `Id ${updateTodoDto.id} created conflict - not unique`,
-                });
-            }
-            return res.status(common_1.HttpStatus.ACCEPTED).send({
-                result: `updated todo with id ${updateTodoDto.id} successfully`,
-            });
+        const todosAffected = (await this.appService.updateTodo(updateTodoDto))
+            .rows;
+        if (todosAffected.length !== 1) {
+            throwConflictError();
         }
-        catch (e) {
-            return res
-                .status(common_1.HttpStatus.BAD_REQUEST)
-                .json({ result: `Filed to update todo with id: ${updateTodoDto.id}` });
-        }
+        return res.status(common_1.HttpStatus.ACCEPTED).send({
+            message: `updated todo with id ${updateTodoDto.id} successfully`,
+        });
     }
     async updateTodosOrder(newIdsOrder, res) {
-        try {
-            this.appService.reorderTodos(newIdsOrder);
-            return res
-                .status(common_1.HttpStatus.ACCEPTED)
-                .send({ result: 'updated todos order successfully' });
-        }
-        catch (e) {
-            return res
-                .status(common_1.HttpStatus.BAD_REQUEST)
-                .json({ result: `Filed to update todos Order` });
-        }
+        this.appService.reorderTodos(newIdsOrder);
+        return res
+            .status(common_1.HttpStatus.ACCEPTED)
+            .send({ message: 'updated todos order successfully' });
     }
     async remove(id, res) {
-        try {
-            console.log('remove todo with id: ', id);
-            const todosAffected = (await this.appService.removeTodo(id)).rows;
-            if (todosAffected.length !== 1) {
-                return res
-                    .status(common_1.HttpStatus.BAD_REQUEST)
-                    .json({ result: `Id ${id} created conflict - not unique` });
-            }
-            return res
-                .status(common_1.HttpStatus.ACCEPTED)
-                .send(`deleted todo with id ${id} successfully`);
+        const todosAffected = (await this.appService.removeTodo(id)).rows;
+        if (todosAffected.length !== 1) {
+            throwConflictError();
         }
-        catch (e) {
-            return res
-                .status(common_1.HttpStatus.BAD_REQUEST)
-                .json({ result: `Filed to delete todo with id: ${id}` });
-        }
+        return res
+            .status(common_1.HttpStatus.ACCEPTED)
+            .send(`deleted todo with id ${id} successfully`);
     }
 };
 __decorate([
@@ -156,6 +103,7 @@ __decorate([
 ], AppController.prototype, "getTodosOrder", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, common_1.UsePipes)(new common_1.ParseUUIDPipe()),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
@@ -187,8 +135,15 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "remove", null);
 AppController = __decorate([
+    (0, common_1.UseFilters)(new HttpExceptionFilter_1.HttpExceptionFilter()),
     (0, common_1.Controller)('todos'),
     __metadata("design:paramtypes", [app_service_1.AppService])
 ], AppController);
 exports.AppController = AppController;
+const throwConflictError = () => {
+    throw new common_1.ConflictException('conflict happend', {
+        cause: new Error(),
+        description: 'request yeilded mre than one result',
+    });
+};
 //# sourceMappingURL=app.controller.js.map

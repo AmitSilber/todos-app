@@ -20,7 +20,6 @@ export function reorderTodoList(index: number,
   const draggingItemContent = idsReordered[draggingItem.current];
   idsReordered.splice(draggingItem.current, 1);
   idsReordered.splice(dragOverItem.current, 0, draggingItemContent);
-
   draggingItem.current = dragOverItem.current;
   dragOverItem.current = 0;
   dispatch(updateOrderInSlice({ todoIdsOrder: idsReordered }))

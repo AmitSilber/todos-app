@@ -26,33 +26,33 @@ function App() {
   return (
     <div className="App">
       <Header />
-      { loadingStatus === 'loading'? <div className='loader'/>:
-      <div id="table-wrapper">
-        <table id="todo-list-table">
-          <thead>
-            <tr>
-              <th className="title column">Title</th>
-              <th className="due-date column">Due date</th>
-              <th className="status column">Done?</th>
-            </tr>
-          </thead>
-          <tbody>
-            {todoIndicesInorder.map((todoId, index) => {
-              return (<Row key={todoId}
-                todoId={todoId}
-                onDragHandlers={
-                  {
-                    start: () => handleDragStart(index, draggingItem),
-                    enter: () => reorderTodoList(index, draggingItem, dragOverItem, todoIndicesInorder, dispatch),
-                    over: (e) => e.preventDefault(),
-                  }}
+      {loadingStatus === 'loading' ? <div className='loader' /> :
+        <div id="table-wrapper">
+          <table id="todo-list-table">
+            <thead>
+              <tr>
+                <th className="title column">Title</th>
+                <th className="due-date column">Due date</th>
+                <th className="status column">Done?</th>
+              </tr>
+            </thead>
+            <tbody>
+              {todoIndicesInorder.map((todoId, index) => {
+                return (<Row key={todoId}
+                  todoId={todoId}
+                  onDragHandlers={
+                    {
+                      start: () => handleDragStart(index, draggingItem),
+                      enter: () => reorderTodoList(index, draggingItem, dragOverItem, todoIndicesInorder, dispatch),
+                      over: (e) => e.preventDefault(),
+                    }}
 
-              />);
-            })}
-          </tbody>
-        </table>
-      </div>
-}
+                />);
+              })}
+            </tbody>
+          </table>
+        </div>
+      }
     </div>
   );
 }

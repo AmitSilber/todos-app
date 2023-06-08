@@ -30,23 +30,15 @@ let AppService = class AppService {
     }
     async getNextTodoMaxOrder() {
         const maxOrderQuery = `SELECT todosorder FROM "todosTable" ORDER BY todosorder DESC LIMIT 1`;
-        try {
-            const resultRows = (await this.connectionService.query(maxOrderQuery))
-                .rows;
-            const maxOrder = !resultRows.length
-                ? 0
-                : resultRows[0]['todosorder'];
-            return maxOrder + 1;
-        }
-        catch (e) {
-            console.log(e);
-        }
+        const resultRows = (await this.connectionService.query(maxOrderQuery)).rows;
+        const maxOrder = !resultRows.length
+            ? 0
+            : resultRows[0]['todosorder'];
+        return maxOrder + 1;
     }
     async findAll() {
         const selectAllQuery = `SELECT * FROM "todosTable" ORDER BY todosorder ASC LIMIT 100;`;
-        return new Promise((resolve) => {
-            setTimeout(() => resolve(this.connectionService.query(selectAllQuery)), 3000);
-        });
+        return this.connectionService.query(selectAllQuery);
     }
     async findOne(id) {
         const selectTodoQuery = `SELECT * FROM "todosTable" WHERE id='${id}';`;
